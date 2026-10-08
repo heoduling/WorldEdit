@@ -186,6 +186,7 @@ public class BiomeCommands {
             region = session.getSelection(world);
         }
 
+        world.checkRegionAccess(region.getMinimumPoint(), region.getMaximumPoint());
         RegionFunction replace = new BiomeReplace(editSession, target);
         RegionVisitor visitor = new RegionVisitor(region, replace);
         Operations.completeLegacy(visitor);
@@ -222,6 +223,7 @@ public class BiomeCommands {
             region = session.getSelection(world);
         }
 
+        world.checkRegionAccess(region.getMinimumPoint(), region.getMaximumPoint());
         RegionFunction replace = new BiomeReplace(editSession, target);
         RegionMaskingFilter filter = new RegionMaskingFilter(from, replace);
         RegionVisitor visitor = new RegionVisitor(region, filter);

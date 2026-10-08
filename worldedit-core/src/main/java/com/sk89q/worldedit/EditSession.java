@@ -884,6 +884,9 @@ public class EditSession implements Extent, AutoCloseable {
      * @param editSession a new {@link EditSession} to perform the undo in
      */
     public void undo(EditSession editSession) {
+        if (editSession.getWorld() != null) {
+            editSession.getWorld().checkHistoryAccess(changeSet);
+        }
         UndoContext context = new UndoContext();
         context.setExtent(editSession.bypassHistory);
         Operations.completeBlindly(ChangeSetExecutor.createUndo(changeSet, context));
@@ -896,6 +899,9 @@ public class EditSession implements Extent, AutoCloseable {
      * @param editSession a new {@link EditSession} to perform the redo in
      */
     public void redo(EditSession editSession) {
+        if (editSession.getWorld() != null) {
+            editSession.getWorld().checkHistoryAccess(changeSet);
+        }
         UndoContext context = new UndoContext();
         context.setExtent(editSession.bypassHistory);
         Operations.completeBlindly(ChangeSetExecutor.createRedo(changeSet, context));
@@ -1202,6 +1208,9 @@ public class EditSession implements Extent, AutoCloseable {
     public int setBlocks(Region region, Pattern pattern) throws MaxChangedBlocksException {
         checkNotNull(region);
         checkNotNull(pattern);
+        if (world != null) {
+            world.checkRegionAccess(region.getMinimumPoint(), region.getMaximumPoint());
+        }
 
         BlockReplace replace = new BlockReplace(this, pattern);
         RegionVisitor visitor = new RegionVisitor(region, replace);
@@ -1252,6 +1261,9 @@ public class EditSession implements Extent, AutoCloseable {
         checkNotNull(region);
         checkNotNull(mask);
         checkNotNull(pattern);
+        if (world != null) {
+            world.checkRegionAccess(region.getMinimumPoint(), region.getMaximumPoint());
+        }
 
         BlockReplace replace = new BlockReplace(this, pattern);
         RegionMaskingFilter filter = new RegionMaskingFilter(mask, replace);

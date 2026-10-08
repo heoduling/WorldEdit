@@ -32,14 +32,22 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.Answers;
+import org.mockito.MockedConstruction;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doCallRealMethod;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockConstruction;
+import static org.mockito.Mockito.withSettings;
 
 class LocalSessionTest extends BaseWorldEditTest {
     private LocalSession session;
@@ -53,6 +61,47 @@ class LocalSessionTest extends BaseWorldEditTest {
         world = mock(World.class, Answers.RETURNS_SMART_NULLS);
         player = mock(Player.class, Answers.RETURNS_SMART_NULLS);
         doReturn(world).when(player).getWorld();
+    }
+
+    @SuppressWarnings("try")
+    @Test
+    void failedUndoRetainsTheSameHistoryEntryForRetry() {
+        EditSession original = mock(EditSession.class);
+        doReturn(world).when(original).getWorld();
+        doReturn(1).when(original).size();
+        session.remember(original);
+        doThrow(new IllegalStateException("foreign region")).when(original).undo(any(EditSession.class));
+
+        try (var ignored = mockReplaySessions()) {
+            assertThrows(IllegalStateException.class, () -> session.undo(null, player));
+            doNothing().when(original).undo(any(EditSession.class));
+            assertSame(original, session.undo(null, player));
+            assertNull(session.undo(null, player));
+        }
+    }
+
+    @SuppressWarnings("try")
+    @Test
+    void failedRedoRetainsTheSameHistoryEntryForRetry() {
+        EditSession original = mock(EditSession.class);
+        doReturn(world).when(original).getWorld();
+        doReturn(1).when(original).size();
+        session.remember(original);
+        try (var ignored = mockReplaySessions()) {
+            assertSame(original, session.undo(null, player));
+            doThrow(new IllegalStateException("foreign region")).when(original).redo(any(EditSession.class));
+
+            assertThrows(IllegalStateException.class, () -> session.redo(null, player));
+            doNothing().when(original).redo(any(EditSession.class));
+            assertSame(original, session.redo(null, player));
+            assertNull(session.redo(null, player));
+        }
+    }
+
+    private MockedConstruction<EditSessionBuilder> mockReplaySessions() {
+        // This test exercises history bookkeeping, without initializing global block registries.
+        return mockConstruction(EditSessionBuilder.class, withSettings().defaultAnswer(Answers.RETURNS_SELF),
+            (builder, context) -> doReturn(mock(EditSession.class)).when(builder).build());
     }
 
     @SuppressWarnings("deprecation")

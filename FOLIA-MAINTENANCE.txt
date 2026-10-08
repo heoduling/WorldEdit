@@ -1,0 +1,38 @@
+WorldEdit 7.4.5-foliafix-1
+Base: EngineHub/WorldEdit 7.4.5, b8dc4c1d9120065cad9abfb3add5b05f131a331f.
+Target: the supplied, unchanged Shiroha 26.2 server; Java 25.
+
+Changes
+- Use Bukkit's native asynchronous teleport on Folia instead of PaperLib's
+  version-dependent synchronous fallback.
+- Validate all undo/redo history targets before replay; only consume an undo
+  entry after replay and flushing succeed.
+- Reject inaccessible selected regions, clipboard destinations and biome
+  selections before writing. Validate block/biome access and block side effects.
+- Require the target and a one-chunk neighbour margin to be owned and loaded;
+  access checks never synchronously load a chunk.
+
+Scope
+This is conservative local-region editing, not a cross-region editing engine.
+Move closer or reduce the selection when the explicit Folia message appears.
+Unusual API operations/brushes are guarded per access, but are not transactional;
+there is no general rollback promise for arbitrary operations or physics chains.
+Unknown history change types are rejected before replay. Upstream unsupported
+Folia entity creation/removal and regeneration remain unsupported.
+WorldEdit hot unloading/replacing with PlugManX is not certified by this patch.
+No scheduler, executor, cache, plugin configuration or server-core changes.
+
+Build
+Use the checked-in Gradle wrapper and JDK 25.
+gradlew.bat clean :worldedit-core:check :worldedit-bukkit:check 
+  :verification:checkCoreApiCompatibility :verification:checkBukkitApiCompatibility
+  :worldedit-bukkit:shadowJar
+Deliver the worldedit-bukkit/build/libs/*-dist.jar, not the thin JAR.
+Preserve the upstream GPL license and provide corresponding source.
+
+Install
+Back up the current WorldEdit JAR/configuration and worlds. Stop the server,
+replace the single old WorldEdit JAR, retain its existing configuration, then
+start normally. WorldGuard remains dependent on WorldEdit. Do not hot replace
+WorldEdit underneath running dependent plugins. Roll back by stopping and
+restoring the previous WorldEdit JAR. This patch has no new configuration keys.

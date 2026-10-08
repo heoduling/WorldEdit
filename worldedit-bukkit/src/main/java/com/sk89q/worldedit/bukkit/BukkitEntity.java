@@ -29,7 +29,6 @@ import com.sk89q.worldedit.regions.RegionOperationException;
 import com.sk89q.worldedit.util.Location;
 import com.sk89q.worldedit.util.formatting.text.TranslatableComponent;
 import com.sk89q.worldedit.world.NullWorld;
-import io.papermc.lib.PaperLib;
 
 import java.lang.ref.WeakReference;
 import javax.annotation.Nullable;
@@ -78,7 +77,7 @@ class BukkitEntity implements Entity {
         org.bukkit.entity.Entity entity = entityRef.get();
         if (entity != null) {
             if (WorldEditPlugin.getInstance().isFolia()) {
-                var _  = PaperLib.teleportAsync(entity, BukkitAdapter.adapt(location));
+                var _  = entity.teleportAsync(BukkitAdapter.adapt(location));
                 return true;
             } else {
                 return entity.teleport(BukkitAdapter.adapt(location));

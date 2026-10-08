@@ -100,6 +100,7 @@ import com.sk89q.worldedit.internal.annotation.Selection;
 import com.sk89q.worldedit.internal.command.CommandArgParser;
 import com.sk89q.worldedit.internal.command.CommandLoggingHandler;
 import com.sk89q.worldedit.internal.command.CommandRegistrationHandler;
+import com.sk89q.worldedit.internal.command.RegionAccessHandler;
 import com.sk89q.worldedit.internal.command.exception.ExceptionConverter;
 import com.sk89q.worldedit.internal.command.exception.WorldEditExceptionConverter;
 import com.sk89q.worldedit.internal.util.ErrorReporting;
@@ -185,6 +186,7 @@ public final class PlatformCommandManager {
         this.globalInjectedValues = MapBackedValueStore.create();
         this.registration = new CommandRegistrationHandler(
             ImmutableList.of(
+                new RegionAccessHandler(),
                 new CommandLoggingHandler(worldEdit, COMMAND_LOG)
             ));
         // setup separate from main constructor

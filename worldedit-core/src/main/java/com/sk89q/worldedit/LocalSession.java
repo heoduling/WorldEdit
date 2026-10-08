@@ -256,9 +256,8 @@ public class LocalSession {
      */
     public EditSession undo(@Nullable BlockBag newBlockBag, Actor actor) {
         checkNotNull(actor);
-        --historyPointer;
-        if (historyPointer >= 0) {
-            EditSession editSession = Iterables.get(history, historyPointer);
+        if (historyPointer > 0) {
+            EditSession editSession = Iterables.get(history, historyPointer - 1);
             try (EditSession newEditSession =
                      WorldEdit.getInstance().newEditSessionBuilder()
                          .world(editSession.getWorld()).blockBag(newBlockBag).actor(actor)
@@ -266,6 +265,7 @@ public class LocalSession {
                 prepareEditingExtents(newEditSession, actor);
                 editSession.undo(newEditSession);
             }
+            --historyPointer;
             return editSession;
         } else {
             historyPointer = 0;

@@ -27,6 +27,7 @@ import com.sk89q.worldedit.blocks.BaseItemStack;
 import com.sk89q.worldedit.extension.platform.Platform;
 import com.sk89q.worldedit.extent.Extent;
 import com.sk89q.worldedit.function.mask.Mask;
+import com.sk89q.worldedit.history.changeset.ChangeSet;
 import com.sk89q.worldedit.internal.util.DeprecationUtil;
 import com.sk89q.worldedit.internal.util.NonAbstractForCompatibility;
 import com.sk89q.worldedit.math.BlockVector2;
@@ -54,6 +55,24 @@ import javax.annotation.Nullable;
  * Represents a world (dimension).
  */
 public interface World extends Extent, Keyed {
+
+    /**
+     * Check access to an edit and its neighbouring chunks without loading chunks.
+     * Region-threaded platforms reject unsupported access before an operation starts.
+     *
+     * @param minimum minimum block coordinates
+     * @param maximum maximum block coordinates
+     */
+    default void checkRegionAccess(BlockVector3 minimum, BlockVector3 maximum) {
+    }
+
+    /**
+     * Check every history target before applying any undo or redo changes.
+     *
+     * @param changes the history to replay
+     */
+    default void checkHistoryAccess(ChangeSet changes) {
+    }
 
     /**
      * Get the name of the world.

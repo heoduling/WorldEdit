@@ -28,9 +28,11 @@ import com.sk89q.worldedit.blocks.BaseItem;
 import com.sk89q.worldedit.blocks.BaseItemStack;
 import com.sk89q.worldedit.bukkit.adapter.BukkitImplAdapter;
 import com.sk89q.worldedit.bukkit.adapter.UnsupportedVersionEditException;
+import com.sk89q.worldedit.bukkit.folia.FoliaWorldAccess;
 import com.sk89q.worldedit.entity.BaseEntity;
 import com.sk89q.worldedit.extent.Extent;
 import com.sk89q.worldedit.function.mask.Mask;
+import com.sk89q.worldedit.history.changeset.ChangeSet;
 import com.sk89q.worldedit.internal.util.LogManagerCompat;
 import com.sk89q.worldedit.internal.wna.WorldNativeAccess;
 import com.sk89q.worldedit.math.BlockVector2;
@@ -340,8 +342,25 @@ public class BukkitWorld extends AbstractWorld {
     @Override
     public void checkLoadedChunk(BlockVector3 pt) {
         World world = getWorld();
-
+        if (WorldEditPlugin.getInstance().isFolia()) {
+            FoliaWorldAccess.checkRead(world, pt);
+            return;
+        }
         world.getChunkAt(pt.x() >> 4, pt.z() >> 4);
+    }
+
+    @Override
+    public void checkRegionAccess(BlockVector3 minimum, BlockVector3 maximum) {
+        if (WorldEditPlugin.getInstance().isFolia()) {
+            FoliaWorldAccess.checkRegion(getWorld(), minimum, maximum);
+        }
+    }
+
+    @Override
+    public void checkHistoryAccess(ChangeSet changes) {
+        if (WorldEditPlugin.getInstance().isFolia()) {
+            FoliaWorldAccess.checkHistory(getWorld(), changes);
+        }
     }
 
     @Override
@@ -495,6 +514,9 @@ public class BukkitWorld extends AbstractWorld {
 
     @Override
     public com.sk89q.worldedit.world.block.BlockState getBlock(BlockVector3 position) {
+        if (WorldEditPlugin.getInstance().isFolia()) {
+            FoliaWorldAccess.checkRead(getWorld(), position);
+        }
         BukkitImplAdapter adapter = WorldEditPlugin.getInstance().getBukkitImplAdapter();
         if (adapter != null) {
             try {
@@ -516,6 +538,7 @@ public class BukkitWorld extends AbstractWorld {
 
     @Override
     public <B extends BlockStateHolder<B>> boolean setBlock(BlockVector3 position, B block, SideEffectSet sideEffects) {
+        checkRegionAccess(position, position);
         clearContainerBlockContents(position);
         if (worldNativeAccess != null) {
             try {
@@ -540,6 +563,9 @@ public class BukkitWorld extends AbstractWorld {
 
     @Override
     public BaseBlock getFullBlock(BlockVector3 position) {
+        if (WorldEditPlugin.getInstance().isFolia()) {
+            FoliaWorldAccess.checkRead(getWorld(), position);
+        }
         BukkitImplAdapter adapter = WorldEditPlugin.getInstance().getBukkitImplAdapter();
         if (adapter != null) {
             return adapter.getFullBlock(BukkitAdapter.adapt(getWorld(), position));
@@ -551,6 +577,7 @@ public class BukkitWorld extends AbstractWorld {
     @Override
     public Set<SideEffect> applySideEffects(BlockVector3 position, com.sk89q.worldedit.world.block.BlockState previousType,
             SideEffectSet sideEffectSet) {
+        checkRegionAccess(position, position);
         if (worldNativeAccess != null) {
             worldNativeAccess.applySideEffects(position, previousType, sideEffectSet);
             return Sets.intersection(
@@ -574,6 +601,9 @@ public class BukkitWorld extends AbstractWorld {
 
     @Override
     public BiomeType getBiome(BlockVector3 position) {
+        if (WorldEditPlugin.getInstance().isFolia()) {
+            FoliaWorldAccess.checkRead(getWorld(), position);
+        }
         BukkitImplAdapter adapter = WorldEditPlugin.getInstance().getBukkitImplAdapter();
         if (adapter != null) {
             return adapter.getBiome(BukkitAdapter.adapt(getWorld(), position));
@@ -584,6 +614,7 @@ public class BukkitWorld extends AbstractWorld {
 
     @Override
     public boolean setBiome(BlockVector3 position, BiomeType biome) {
+        checkRegionAccess(position, position);
         BukkitImplAdapter adapter = WorldEditPlugin.getInstance().getBukkitImplAdapter();
         if (adapter != null) {
             adapter.setBiome(BukkitAdapter.adapt(getWorld(), position), biome);

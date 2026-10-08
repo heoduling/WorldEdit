@@ -20,43 +20,31 @@
 package com.sk89q.worldedit.bukkit.folia;
 
 import com.sk89q.worldedit.WorldEditException;
-import com.sk89q.worldedit.bukkit.BukkitAdapter;
 import com.sk89q.worldedit.event.extent.EditSessionEvent;
 import com.sk89q.worldedit.extent.AbstractDelegateExtent;
 import com.sk89q.worldedit.math.BlockVector3;
 import com.sk89q.worldedit.util.eventbus.Subscribe;
 import com.sk89q.worldedit.world.biome.BiomeType;
 import com.sk89q.worldedit.world.block.BlockStateHolder;
-import org.bukkit.Bukkit;
 
 public class FoliaExtentListener {
 
     @Subscribe
     public void onEditSessionCreation(EditSessionEvent event) {
-        // This injects an extent that only allows modifying blocks & biomes that are within the current region.
-        // This prevents WorldEdit from inadvertently causing chunk loads or other thread-shenanigans when running on Folia.
+        // Reject unsupported writes explicitly, including their neighbouring chunks.
+        // Returning false silently consumes undo history and misreports command success.
         event.setExtent(new AbstractDelegateExtent(event.getExtent()) {
-
-            private boolean isWithinRegion(BlockVector3 location) {
-                return Bukkit.isOwnedByCurrentRegion(BukkitAdapter.adapt(BukkitAdapter.adapt(event.getWorld()), location));
-            }
 
             @Override
             public <T extends BlockStateHolder<T>> boolean setBlock(BlockVector3 location, T block) throws WorldEditException {
-                if (isWithinRegion(location)) {
-                    return super.setBlock(location, block);
-                }
-
-                return false;
+                event.getWorld().checkRegionAccess(location, location);
+                return super.setBlock(location, block);
             }
 
             @Override
             public boolean setBiome(BlockVector3 position, BiomeType biome) {
-                if (isWithinRegion(position)) {
-                    return super.setBiome(position, biome);
-                }
-
-                return false;
+                event.getWorld().checkRegionAccess(position, position);
+                return super.setBiome(position, biome);
             }
         });
     }

@@ -21,6 +21,7 @@ package com.sk89q.worldedit.function.operation;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.sk89q.worldedit.EditSession;
 import com.sk89q.worldedit.WorldEditException;
 import com.sk89q.worldedit.entity.Entity;
 import com.sk89q.worldedit.entity.metadata.EntityProperties;
@@ -36,6 +37,7 @@ import com.sk89q.worldedit.function.mask.Masks;
 import com.sk89q.worldedit.function.visitor.EntityVisitor;
 import com.sk89q.worldedit.function.visitor.RegionVisitor;
 import com.sk89q.worldedit.math.BlockVector3;
+import com.sk89q.worldedit.math.transform.AffineTransform;
 import com.sk89q.worldedit.math.transform.Identity;
 import com.sk89q.worldedit.math.transform.Transform;
 import com.sk89q.worldedit.regions.Region;
@@ -57,6 +59,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * source. Therefore, interpolation will not occur to fill in the gaps.</p>
  */
 public class ForwardExtentCopy implements Operation {
+    private boolean accessChecked;
 
     private final Extent source;
     private final Extent destination;
@@ -264,6 +267,10 @@ public class ForwardExtentCopy implements Operation {
 
     @Override
     public Operation resume(RunContext run) throws WorldEditException {
+        if (!accessChecked) {
+            checkAccess();
+            accessChecked = true;
+        }
         if (lastVisitor != null) {
             affectedBlocks += lastVisitor.getAffected();
             lastVisitor = null;
@@ -330,6 +337,44 @@ public class ForwardExtentCopy implements Operation {
 
     @Override
     public void cancel() {
+    }
+
+    private void checkAccess() {
+        if (source instanceof EditSession session && session.getWorld() != null) {
+            session.getWorld().checkRegionAccess(region.getMinimumPoint(), region.getMaximumPoint());
+        }
+        if (!(destination instanceof EditSession session) || session.getWorld() == null) {
+            return;
+        }
+        // Validate every repetition before copying the first block, including rotated pastes.
+        Transform next = transform;
+        for (int repetition = 0; repetition < repetitions; repetition++) {
+            BlockVector3 min = null;
+            BlockVector3 max = null;
+            Iterable<BlockVector3> points = region;
+            if (next.isIdentity() || next instanceof AffineTransform) {
+                List<BlockVector3> corners = Lists.newArrayList();
+                BlockVector3 low = region.getMinimumPoint();
+                BlockVector3 high = region.getMaximumPoint();
+                for (int x : new int[] {low.x(), high.x()}) {
+                    for (int y : new int[] {low.y(), high.y()}) {
+                        for (int z : new int[] {low.z(), high.z()}) {
+                            corners.add(BlockVector3.at(x, y, z));
+                        }
+                    }
+                }
+                points = corners;
+            }
+            for (BlockVector3 point : points) {
+                BlockVector3 target = next.apply(point.subtract(from).toVector3()).toBlockPoint().add(to);
+                min = min == null ? target : min.getMinimum(target);
+                max = max == null ? target : max.getMaximum(target);
+            }
+            if (min != null) {
+                session.getWorld().checkRegionAccess(min, max);
+            }
+            next = next.combine(transform);
+        }
     }
 
     @Override
